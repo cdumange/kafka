@@ -22,7 +22,7 @@ app.UseHttpsRedirection();
 var b = new ProducerBuilder<string, string>(new ProducerConfig
 {
     AllowAutoCreateTopics = true,
-    BootstrapServers = "127.0.0.1:9092",
+    BootstrapServers = "kafka-1:9092",
 });
 
 var client = b.Build();
