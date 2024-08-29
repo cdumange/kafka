@@ -1,0 +1,25 @@
+{
+    "namespace": "test",
+    "type": "record",
+    "name": "simple",
+    "fields": [
+        {
+            "name": "id",
+            "type": "string",
+            "doc": "id of the value"
+        },
+        {
+            "name": "value",
+            "type": "string",
+            "doc": "the value"
+        },
+        {
+            "name": "test",
+            "type": [
+                "null",
+                "string"
+            ],
+            "default": null
+        }
+    ]
+}
