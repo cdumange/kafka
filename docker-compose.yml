@@ -45,6 +45,19 @@ services:
       - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=2
       - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=2
 
+  registry:
+    image: docker.io/bitnami/schema-registry:7.6
+    ports:
+      - '8081:8081'
+    networks:
+      - my_network
+    depends_on:
+      - kafka-0
+      - kafka-1
+    environment:
+      - SCHEMA_REGISTRY_LISTENERS=http://0.0.0.0:8081
+      - SCHEMA_REGISTRY_KAFKA_BROKERS=PLAINTEXT://kafka-0:9092,PLAINTEXT://kafka-1:9092
+
   producer:
     build:
       context: .
