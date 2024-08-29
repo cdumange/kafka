@@ -1,5 +1,11 @@
+using System.Net.WebSockets;
+using Avro;
+using Avro.Generic;
 using Confluent.Kafka;
+using Confluent.SchemaRegistry;
+using Confluent.SchemaRegistry.Serdes;
 using Microsoft.AspNetCore.Mvc;
+using Producer.Schemas;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,27 +25,44 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var b = new ProducerBuilder<string, string>(new ProducerConfig
+var registry = new CachedSchemaRegistryClient(new SchemaRegistryConfig
 {
-    AllowAutoCreateTopics = true,
-    BootstrapServers = "kafka-1:9092",
+    Url = "registry:8081"
 });
 
-var client = b.Build();
+var client = new ProducerBuilder<string, GenericRecord>(new ProducerConfig
+{
+    AllowAutoCreateTopics = true,
+    BootstrapServers = "kafka-1:9092,kafka-0:9092",
+}).SetValueSerializer(new AvroSerializer<GenericRecord>(registry))
+    .Build();
 
 
-app.MapPost("/post/{topic}", async (ILogger<string> logger, string topic, [FromBody] string value) =>
+app.MapPost("/post/{topic}/{version}", async (ILogger<string> logger, string topic, int version, [FromBody] Simple value) =>
 {
     logger.LogDebug("received {value}", value);
-    var res = await client.ProduceAsync(topic, new Message<string, string>
+    var schema = await registry.GetRegisteredSchemaAsync(topic, version);
+
+    var s = Avro.Schema.Parse(schema.SchemaString);
+    if (s is RecordSchema recorded)
     {
-        Key = Guid.NewGuid().ToString(),
-        Value = value,
-    });
+        var record = new GenericRecord(recorded);
+        record.Add(0, value.ID);
+        record.Add(1, value.Value);
 
-    logger.LogDebug("returned {res}", res);
+        var res = await client.ProduceAsync(topic, new Message<string, GenericRecord>
+        {
+            Key = Guid.NewGuid().ToString(),
+            Value = record,
+        });
 
-    return res;
+        logger.LogDebug("returned {res}", res);
+        return res;
+    }
+    else
+    {
+        return null;
+    }
 })
 .WithName("Send broadcast to kafka")
 .WithOpenApi();
