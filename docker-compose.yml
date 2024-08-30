@@ -69,6 +69,7 @@ services:
     depends_on:
       - kafka-0
       - kafka-1
+      - registry
 
   consumer:
     build:
@@ -77,7 +78,10 @@ services:
     networks:
       - my_network
     depends_on:
-      - producer
+      - kafka-0
+      - kafka-1
+      - registry
+
 networks:
   my_network:
     driver: bridge
