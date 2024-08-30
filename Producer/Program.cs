@@ -1,4 +1,3 @@
-using System.Net.WebSockets;
 using Avro;
 using Avro.Generic;
 using Confluent.Kafka;
@@ -25,12 +24,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var registry = new CachedSchemaRegistryClient(new SchemaRegistryConfig
+using var registry = new CachedSchemaRegistryClient(new SchemaRegistryConfig
 {
     Url = "registry:8081"
 });
 
-var client = new ProducerBuilder<string, GenericRecord>(new ProducerConfig
+using var client = new ProducerBuilder<string, GenericRecord>(new ProducerConfig
 {
     AllowAutoCreateTopics = true,
     BootstrapServers = "kafka-1:9092,kafka-0:9092",
@@ -42,6 +41,7 @@ app.MapPost("/post/{topic}/{version}", async (ILogger<string> logger, string top
 {
     logger.LogDebug("received {value}", value);
     var schema = await registry.GetRegisteredSchemaAsync(topic, version);
+    logger.LogDebug($"topic found for {topic}:{version} = {schema.SchemaString}");
 
     var s = Avro.Schema.Parse(schema.SchemaString);
     if (s is RecordSchema recorded)
